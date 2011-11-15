@@ -1,14 +1,6 @@
 [IF_EXPRE] implement IF expression
 
 
-[USE_BYTE] use byte[] instead of char[] to avoid conversion
-
-
-[REMOVE_STRING_BUILDER] do not use StringBuilder anymore as they increment their capacity one by one
-use our own array
-write out own StringBuilder that increment its capacity more than by one
-
-
 [EXTERNAL_URL] include virtual can call external website
 Example:
 <!--include virtual="http://www.dns.com/uri" -->

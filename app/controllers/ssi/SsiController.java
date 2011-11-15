@@ -79,7 +79,8 @@ public class SsiController extends Controller {
             else if (section.parseState == ParseState.INCLUDE) {
                 // TODO flush content and call include asynchronous?
                 Request innerRequest = FunctionalTest.newRequest();
-                innerRequest.path = section.content;
+                // TODO is the charset relevant? (URL in UTF8?)
+                innerRequest.path = new String(section.content);
                 innerRequest.querystring = request.querystring;
                 Response innerResponse = FunctionalTest.newResponse();
                 ActionInvoker.invoke(innerRequest, innerResponse);

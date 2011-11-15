@@ -14,7 +14,8 @@ public class DocumentParserTest {
         assertEquals(1, result.sections.size());
 
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(0).parseState);
-        assertEquals("hello world <!-- comment -->", result.sections.get(0).content);
+        String content = result.sections.get(0).getContentAsString();
+        assertEquals("hello world <!-- comment -->", content);
     }
 
     @Test
@@ -49,13 +50,13 @@ public class DocumentParserTest {
         assertNotNull(result.sections);
         assertEquals(3, result.sections.size());
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(0).parseState);
-        assertEquals("hello world", result.sections.get(0).content);
+        assertEquals("hello world", result.sections.get(0).getContentAsString());
 
         assertEquals(ParseState.INCLUDE, result.sections.get(1).parseState);
-        assertEquals("my-url", result.sections.get(1).content);
+        assertEquals("my-url", result.sections.get(1).getContentAsString());
 
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(2).parseState);
-        assertEquals("end", result.sections.get(2).content);
+        assertEquals("end", result.sections.get(2).getContentAsString());
     }
 
     @Test
@@ -65,10 +66,10 @@ public class DocumentParserTest {
         assertEquals(2, result.sections.size());
 
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(0).parseState);
-        assertEquals("hello world", result.sections.get(0).content);
+        assertEquals("hello world", result.sections.get(0).getContentAsString());
 
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(1).parseState);
-        assertEquals("<!--#include virtual=\"my-url-->end", result.sections.get(1).content);
+        assertEquals("<!--#include virtual=\"my-url-->end", result.sections.get(1).getContentAsString());
     }
 
     @Test
@@ -77,13 +78,13 @@ public class DocumentParserTest {
         assertEquals(3, result.sections.size());
 
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(0).parseState);
-        assertEquals("hello world", result.sections.get(0).content);
+        assertEquals("hello world", result.sections.get(0).getContentAsString());
 
         assertEquals(ParseState.IF, result.sections.get(1).parseState);
-        assertEquals("ze-expression", result.sections.get(1).content);
+        assertEquals("ze-expression", result.sections.get(1).getContentAsString());
 
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(2).parseState);
-        assertEquals("end", result.sections.get(2).content);
+        assertEquals("end", result.sections.get(2).getContentAsString());
     }
 
     @Test
@@ -92,18 +93,18 @@ public class DocumentParserTest {
         assertEquals(5, result.sections.size());
 
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(0).parseState);
-        assertEquals("hello world", result.sections.get(0).content);
+        assertEquals("hello world", result.sections.get(0).getContentAsString());
 
         assertEquals(ParseState.IF, result.sections.get(1).parseState);
-        assertEquals("ze-expression", result.sections.get(1).content);
+        assertEquals("ze-expression", result.sections.get(1).getContentAsString());
 
         assertEquals(ParseState.INCLUDE, result.sections.get(2).parseState);
-        assertEquals("my-url", result.sections.get(2).content);
+        assertEquals("my-url", result.sections.get(2).getContentAsString());
 
         assertEquals(ParseState.ENDIF, result.sections.get(3).parseState);
 
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(4).parseState);
-        assertEquals("end", result.sections.get(4).content);
+        assertEquals("end", result.sections.get(4).getContentAsString());
     }
 
 }

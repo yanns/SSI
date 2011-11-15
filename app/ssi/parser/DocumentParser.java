@@ -8,6 +8,7 @@ import static ssi.parser.ParseState.IF;
 import static ssi.parser.ParseState.INCLUDE;
 import static ssi.parser.ParseState.PLAIN_TEXT;
 
+import java.util.Arrays;
 import java.util.Stack;
 
 public class DocumentParser {
@@ -55,7 +56,6 @@ public class DocumentParser {
             this.plainBufferCapacity = plainBufferCapacity;
             return this;
         }
-
     }
 
     //
@@ -85,9 +85,9 @@ public class DocumentParser {
     private int documentIndex = 0;
     private ParseState currentParseState = PLAIN_TEXT;
     private int expressionToParsedIndex = 0;
-    private final StringBuilder plainBuffer;
-    private final StringBuilder inCommentBuffer = new StringBuilder();
-    private final StringBuilder internExpressionBuffer = new StringBuilder();
+    private final ByteBuffer plainBuffer;
+    private final ByteBuffer inCommentBuffer = new ByteBuffer(100);
+    private final ByteBuffer internExpressionBuffer = new ByteBuffer(100);
     private Stack<Section> stack = new Stack<Section>();
     private Section sectionToPushWhenExpressionEnd;
     private final PossibleExpression[] expressionCandidates = new PossibleExpression[4];
@@ -106,7 +106,7 @@ public class DocumentParser {
         this.ifExpression = builder.ifExpression;
         this.elseExpression = builder.elseExpression;
         this.endIfExpression = builder.endIfExpression;
-        this.plainBuffer = new StringBuilder(builder.plainBufferCapacity);
+        this.plainBuffer = new ByteBuffer(builder.plainBufferCapacity);
         initExpressionCandidates();
     }
 
@@ -122,26 +122,28 @@ public class DocumentParser {
     //
 
     public DocumentParser parse(final String content) {
-        return parse(content.toCharArray());
+        return parse(content.getBytes());
     }
 
-    public DocumentParser parse(final char[] chars) {
+    public DocumentParser parse(final byte[] content) {
+        return parse(content, content.length);
+    }
 
-        final int inputLength = chars.length;
-        for (int i = 0; i < inputLength; i++) {
+    public DocumentParser parse(final byte[] content, final int contentLength) {
+        for (int i = 0; i < contentLength; i++) {
 
-            final char c = chars[i];
+            final byte c = content[i];
             if (currentParseState == PLAIN_TEXT) {
                 if (c == expressionBegin[0]) {
                     boolean isExpressionCandidate = true;
-                    if (inputLength > i + 1) {
+                    if (contentLength > i + 1) {
                         // avoid considering non-comment HTML tag as expression candidates
-                        char c1 = chars[i + 1];
+                        byte c1 = content[i + 1];
                         if (c1 != expressionBegin[1])
                             isExpressionCandidate = false;
                     }
                     if (isExpressionCandidate) {
-                        inCommentBuffer.setLength(0);
+                        inCommentBuffer.clear();
                         inCommentBuffer.append(c);
                         expressionToParsedIndex = 1;
                         currentParseState = DYNAMIC_COMMENT;
@@ -189,9 +191,9 @@ public class DocumentParser {
                                     if (expressionToParsedIndex == possibleExpression.expression.length - 1) {
                                         // we found the expression
                                         expressionFound = true;
-                                        if (plainBuffer.length() != 0) {
-                                            stack.push(new Section( PLAIN_TEXT, plainBuffer.toString()) );
-                                            plainBuffer.setLength(0);
+                                        if (plainBuffer.length != 0) {
+                                            stack.push(new Section( PLAIN_TEXT, plainBuffer.getByteBuffer() ) );
+                                            plainBuffer.clear();
                                         }
                                         expressionToParsedIndex = 0;
                                         final ParseState parseState = possibleExpression.parseState;
@@ -200,7 +202,7 @@ public class DocumentParser {
                                             currentParseState = EXPRESSION_END;
                                         } else {
                                             currentParseState = parseState;
-                                            internExpressionBuffer.setLength(0);
+                                            internExpressionBuffer.clear();
                                         }
                                     }
                                 }
@@ -220,7 +222,7 @@ public class DocumentParser {
                 case IF:
                     if (c == '"') {
                         // end of url or expr
-                        sectionToPushWhenExpressionEnd = new Section(currentParseState, internExpressionBuffer.toString());
+                        sectionToPushWhenExpressionEnd = new Section( currentParseState, internExpressionBuffer.getByteBuffer() );
                         currentParseState = EXPRESSION_END;
                         expressionToParsedIndex = 0;
                     } else {
@@ -236,7 +238,7 @@ public class DocumentParser {
                         if (expressionToParsedIndex == expressionEnd.length) {
                             stack.push(sectionToPushWhenExpressionEnd);
                             currentParseState = PLAIN_TEXT;
-                            plainBuffer.setLength(0);
+                            plainBuffer.clear();
                         }
                     } else {
                         // invalid end comment
@@ -256,10 +258,10 @@ public class DocumentParser {
 
     public Document finish() {
         if (currentParseState == PLAIN_TEXT) {
-            stack.push(new Section(PLAIN_TEXT, plainBuffer.toString()));
-        } else if (inCommentBuffer.length() != 0) {
+            stack.push(new Section(PLAIN_TEXT, plainBuffer.getByteBuffer()));
+        } else if (inCommentBuffer.length != 0) {
             plainBuffer.append(inCommentBuffer);
-            stack.push(new Section(PLAIN_TEXT, plainBuffer.toString()));
+            stack.push(new Section(PLAIN_TEXT, plainBuffer.getByteBuffer()));
         }
         while (!stack.isEmpty()) {
             document.sections.add(documentIndex, stack.pop());

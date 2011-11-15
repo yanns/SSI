@@ -16,7 +16,7 @@ public class SsiControllerTest {
     @Test( expected = SsiResult.class )
     public void testRenderPlain() {
         Document document = new Document();
-        document.sections.add(new Section(ParseState.PLAIN_TEXT, ""));
+        document.sections.add(new Section(ParseState.PLAIN_TEXT, "".getBytes()));
         SsiController.renderWithSsi("text/html", document);
     }
 

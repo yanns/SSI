@@ -20,7 +20,7 @@ public class DocumentSectionResult extends Result {
     @Override
     public void apply(Request request, Response response) {
         try {
-            response.out.write(section.content.getBytes(getEncoding()));
+            response.out.write(section.content);
         } catch (Exception e) {
             throw new UnexpectedException(e);
         }

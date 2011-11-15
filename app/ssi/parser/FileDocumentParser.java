@@ -31,9 +31,7 @@ public class FileDocumentParser {
         byte[] bytes = new byte[2048];
         int read;
         while ((read = in.read(bytes)) != -1) {
-            // TODO avoid char array copy
-            String input = new String(bytes, 0, read, "UTF-8");
-            documentParser.parse(input);
+            documentParser.parse(bytes, read);
         }
         return documentParser.finish();
     }

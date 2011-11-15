@@ -24,7 +24,7 @@ public class FileDocumentParserTest {
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(0).parseState);
 
         assertEquals(ParseState.INCLUDE, result.sections.get(1).parseState);
-        assertEquals("/hello/toi", result.sections.get(1).content);
+        assertEquals("/hello/toi", result.sections.get(1).getContentAsString());
 
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(2).parseState);
     }
