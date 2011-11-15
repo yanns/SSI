@@ -3,6 +3,7 @@ package controllers;
 import play.*;
 import play.cache.CacheFor;
 import play.mvc.*;
+import play.mvc.Http.Request;
 
 import java.util.*;
 
@@ -22,9 +23,9 @@ public class Application extends Controller {
         renderText("hello " + name);
     }
 
-    @CacheFor
     public static void interviews() {
-        render();
+        String applicationNumber1 = "HLR--1002347";
+        render(applicationNumber1);
     }
 
 }

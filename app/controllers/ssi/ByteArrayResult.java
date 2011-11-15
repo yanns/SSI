@@ -9,18 +9,18 @@ import play.mvc.Http.Response;
 import play.mvc.results.Result;
 import ssi.parser.Section;
 
-public class DocumentSectionResult extends Result {
+public class ByteArrayResult extends Result {
 
-    final Section section;
+    final byte[] content;
 
-    public DocumentSectionResult(Section section) {
-        this.section = section;
+    public ByteArrayResult(byte[] content) {
+        this.content = content;
     }
 
     @Override
     public void apply(Request request, Response response) {
         try {
-            response.out.write(section.content);
+            response.out.write(content);
         } catch (Exception e) {
             throw new UnexpectedException(e);
         }

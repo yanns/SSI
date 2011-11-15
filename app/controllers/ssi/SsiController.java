@@ -1,5 +1,6 @@
 package controllers.ssi;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -72,19 +73,19 @@ public class SsiController extends Controller {
 
     protected static void renderWithSsi(String mimetype, Document document) {
         final SsiResult ssiResult = new SsiResult(mimetype);
+        Response innerResponse = newResponse(response);
+        Request innerRequest = newRequest(request);
         for (int sectionIt = 0 ; sectionIt < document.sections.size() ; sectionIt++) {
             Section section = document.sections.get(sectionIt);
             if (section.parseState == ParseState.PLAIN_TEXT)
-                ssiResult.results.add(new DocumentSectionResult(section));
+                ssiResult.results.add(new ByteArrayResult(section.content));
             else if (section.parseState == ParseState.INCLUDE) {
                 // TODO flush content and call include asynchronous?
-                Request innerRequest = FunctionalTest.newRequest();
                 // TODO is the charset relevant? (URL in UTF8?)
                 innerRequest.path = new String(section.content);
-                innerRequest.querystring = request.querystring;
-                Response innerResponse = FunctionalTest.newResponse();
+                innerResponse.out.reset();
                 ActionInvoker.invoke(innerRequest, innerResponse);
-                ssiResult.results.add(new RenderHtml(innerResponse.out.toString()));
+                ssiResult.results.add(new ByteArrayResult(innerResponse.out.toByteArray()));
             } else if (section.parseState == ParseState.IF) {
                 if (sectionIt == document.sections.size() - 1)
                     error("expected else or endif expression");
@@ -97,6 +98,35 @@ public class SsiController extends Controller {
         }
 
         throw ssiResult;
+    }
+
+    private static Request newRequest(Request originalRequest) {
+        Request request = Request.createRequest(
+                originalRequest.remoteAddress,
+                originalRequest.method,
+                "",
+                originalRequest.querystring,
+                originalRequest.contentType,
+                null,
+                originalRequest.url,
+                originalRequest.host,
+                true,
+                originalRequest.port,
+                originalRequest.domain,
+                originalRequest.secure,
+                originalRequest.headers,
+                originalRequest.cookies
+        );
+        return request;
+    }
+
+    private static Response newResponse(Response originalReponse) {
+        Response response = new Response();
+        response.out = new ByteArrayOutputStream();
+        response.out.reset();
+        response.headers = originalReponse.headers;
+        response.cookies = originalReponse.cookies;
+        return response;
     }
 
     /**
