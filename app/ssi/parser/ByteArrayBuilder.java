@@ -37,7 +37,7 @@ public class ByteArrayBuilder {
 
     private void ensureCapacity(int minimumCapacity) {
         if (minimumCapacity > byteBuffer.length)
-            byteBuffer = Arrays.copyOf(byteBuffer, byteBuffer.length + initialCapacity); // add more capacity
+            byteBuffer = Arrays.copyOf(byteBuffer, Math.max(byteBuffer.length + initialCapacity, minimumCapacity)); // add more capacity
     }
 
     @Override
