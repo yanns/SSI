@@ -3,10 +3,9 @@
 # ~~~~
 
 # Home page
-GET     /                                 Application.index
-#GET     /hello                            Application.hello
-GET     /hello/{name}                            Application.hello
-GET     /interviews                            Application.interviews
+GET     /                                       Application.index
+GET     /hello/{name}                           Application.hello
+GET     /interviews                             Application.interviews
 GET    /public/homepage.html                    ssi.SsiController.renderWithCache
 GET    /public/.*.html                          ssi.SsiController.render
 
