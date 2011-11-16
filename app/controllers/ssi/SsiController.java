@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -35,12 +36,17 @@ public class SsiController extends Controller {
     // maybe we should activate it for large file
     public static final boolean async = false;
 
+    public static final Map<String, Document> documentCache = new HashMap<String, Document>();
 
     public static void render() {
-        renderWithSsi();
+        renderWithSsi(false);
     }
 
-    protected static void renderWithSsi() {
+    public static void renderWithCache() {
+        renderWithSsi(true);
+    }
+
+    protected static void renderWithSsi(boolean useCache) {
         String templateName = request.path;
         VirtualFile file = Play.getVirtualFile(templateName);
         if (file == null || !file.exists())
@@ -49,21 +55,28 @@ public class SsiController extends Controller {
         final String mimetype = MimeTypes.getContentType(localFile.getName(), "text/plain");
 
 
-        final Document document;
-        if (async) {
-            Promise<Document> docPromise = new Job<Document>() {
-                @Override
-                public Document doJobWithResult() throws Exception {
-                    return FileDocumentParser.parseFile(localFile);
-                }
-            }.now();
-            document = await(docPromise);
-        } else {
-            try {
-                document = FileDocumentParser.parseFile(localFile);
-            } catch (IOException e) {
-                throw new UnexpectedException(e);
-            };
+        Document document = null;
+        if (useCache && documentCache.containsKey(templateName))
+            document = documentCache.get(templateName);
+
+        if (document == null) {
+            if (async) {
+                Promise<Document> docPromise = new Job<Document>() {
+                    @Override
+                    public Document doJobWithResult() throws Exception {
+                        return FileDocumentParser.parseFile(localFile);
+                    }
+                }.now();
+                document = await(docPromise);
+            } else {
+                try {
+                    document = FileDocumentParser.parseFile(localFile);
+                } catch (IOException e) {
+                    throw new UnexpectedException(e);
+                };
+            }
+            if (useCache)
+                documentCache.put(templateName, document);
         }
         renderWithSsi(mimetype, document);
     }
