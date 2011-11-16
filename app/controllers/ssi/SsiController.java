@@ -107,7 +107,7 @@ public class SsiController extends Controller {
                 "",
                 originalRequest.querystring,
                 originalRequest.contentType,
-                null,
+                originalRequest.body,
                 originalRequest.url,
                 originalRequest.host,
                 true,
