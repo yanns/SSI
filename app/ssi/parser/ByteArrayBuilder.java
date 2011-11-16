@@ -2,11 +2,13 @@ package ssi.parser;
 
 import java.util.Arrays;
 
-public class ByteBuffer {
+public class ByteArrayBuilder {
     private byte[] byteBuffer;
+    private final int initialCapacity;
     int length = 0;
 
-    public ByteBuffer(int initialCapacity) {
+    public ByteArrayBuilder(int initialCapacity) {
+        this.initialCapacity = initialCapacity;
         this.byteBuffer = new byte[initialCapacity];
     }
 
@@ -15,7 +17,7 @@ public class ByteBuffer {
         byteBuffer[length++] = b;
     }
 
-    public void append(ByteBuffer b) {
+    public void append(ByteArrayBuilder b) {
         append(b.byteBuffer, b.length);
     }
 
@@ -35,7 +37,7 @@ public class ByteBuffer {
 
     private void ensureCapacity(int minimumCapacity) {
         if (minimumCapacity > byteBuffer.length)
-            byteBuffer = Arrays.copyOf(byteBuffer, byteBuffer.length + 1024);
+            byteBuffer = Arrays.copyOf(byteBuffer, byteBuffer.length + initialCapacity); // add more capacity
     }
 
     @Override

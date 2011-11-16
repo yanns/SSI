@@ -85,9 +85,9 @@ public class DocumentParser {
     private int documentIndex = 0;
     private ParseState currentParseState = PLAIN_TEXT;
     private int expressionToParsedIndex = 0;
-    private final ByteBuffer plainBuffer;
-    private final ByteBuffer inCommentBuffer = new ByteBuffer(100);
-    private final ByteBuffer internExpressionBuffer = new ByteBuffer(100);
+    private final ByteArrayBuilder plainBuffer;
+    private final ByteArrayBuilder inCommentBuffer = new ByteArrayBuilder(100);
+    private final ByteArrayBuilder internExpressionBuffer = new ByteArrayBuilder(100);
     private Stack<Section> stack = new Stack<Section>();
     private Section sectionToPushWhenExpressionEnd;
     private final PossibleExpression[] expressionCandidates = new PossibleExpression[4];
@@ -106,7 +106,7 @@ public class DocumentParser {
         this.ifExpression = builder.ifExpression;
         this.elseExpression = builder.elseExpression;
         this.endIfExpression = builder.endIfExpression;
-        this.plainBuffer = new ByteBuffer(builder.plainBufferCapacity);
+        this.plainBuffer = new ByteArrayBuilder(builder.plainBufferCapacity);
         initExpressionCandidates();
     }
 
