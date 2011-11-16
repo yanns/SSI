@@ -35,9 +35,6 @@ public class SsiController extends Controller {
     // maybe we should activate it for large file
     public static final boolean async = false;
 
-    public static void render(String param) {
-        renderWithSsi();
-    }
 
     public static void render() {
         renderWithSsi();

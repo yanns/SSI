@@ -7,7 +7,7 @@ GET     /                                 Application.index
 #GET     /hello                            Application.hello
 GET     /hello/{name}                            Application.hello
 GET     /interviews                            Application.interviews
-GET    /.*/*.html                                 ssi.SsiController.render
+GET    /public/.*.html                          ssi.SsiController.render
 
 # Ignore favicon requests
 GET     /favicon.ico                            404
