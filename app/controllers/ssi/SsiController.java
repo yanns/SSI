@@ -82,9 +82,14 @@ public class SsiController extends Controller {
     }
 
     protected static void renderWithSsi(String mimetype, Document document) {
-        final SsiResult ssiResult = new SsiResult(mimetype);
-        Response innerResponse = newResponse(response);
         Request innerRequest = newRequest(request);
+        Response innerResponse = newResponse(response);
+        renderWithSsi(mimetype, document, innerRequest, innerResponse);
+    }
+
+    protected static void renderWithSsi(String mimetype, Document document,
+            Request innerRequest, Response innerResponse) {
+        final SsiResult ssiResult = new SsiResult(mimetype);
         for (int sectionIt = 0 ; sectionIt < document.sections.size() ; sectionIt++) {
             Section section = document.sections.get(sectionIt);
             if (section.parseState == ParseState.PLAIN_TEXT)
