@@ -138,7 +138,6 @@ public class SsiController extends Controller {
     private static Response newResponse(Response originalReponse) {
         Response response = new Response();
         response.out = new ByteArrayOutputStream();
-        response.out.reset();
         response.headers = originalReponse.headers;
         response.cookies = originalReponse.cookies;
         return response;
