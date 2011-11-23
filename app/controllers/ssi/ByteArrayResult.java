@@ -1,13 +1,9 @@
 package controllers.ssi;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-
 import play.exceptions.UnexpectedException;
 import play.mvc.Http.Request;
 import play.mvc.Http.Response;
 import play.mvc.results.Result;
-import ssi.parser.Section;
 
 public class ByteArrayResult extends Result {
 
@@ -24,6 +20,11 @@ public class ByteArrayResult extends Result {
         } catch (Exception e) {
             throw new UnexpectedException(e);
         }
+    }
+
+    @Override
+    public String toString() {
+        return new String(content);
     }
 
 }

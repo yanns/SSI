@@ -15,6 +15,11 @@ public class Section {
         this.content = content;
     }
 
+    public Section(ParseState parseState, String content) {
+        this.parseState = parseState;
+        this.content = content.getBytes();
+    }
+
     public String getContentAsString() {
         return new String(content);
     }

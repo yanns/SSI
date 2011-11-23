@@ -1,14 +1,7 @@
 package ssi.parser;
 
-import static ssi.parser.ParseState.DYNAMIC_COMMENT;
-import static ssi.parser.ParseState.ELSE;
-import static ssi.parser.ParseState.ENDIF;
-import static ssi.parser.ParseState.EXPRESSION_END;
-import static ssi.parser.ParseState.IF;
-import static ssi.parser.ParseState.INCLUDE;
-import static ssi.parser.ParseState.PLAIN_TEXT;
+import static ssi.parser.ParseState.*;
 
-import java.util.Arrays;
 import java.util.Stack;
 
 public class DocumentParser {

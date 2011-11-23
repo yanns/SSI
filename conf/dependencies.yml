@@ -2,3 +2,11 @@
 
 require:
     - play
+    - provided -> mvel2 2.0.19
+
+repositories:
+    - provided:
+        type:       local
+        artifact:   "${application.path}/lib-provided/[module]-[revision].jar"
+        contains:
+            - provided -> *
