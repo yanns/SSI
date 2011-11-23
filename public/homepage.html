@@ -37,6 +37,44 @@
 </head>
 
 <body>
+<table>
+    <tr>
+        <td>errors</td>
+        <td><!--#echo var="errors" --></td>
+    </tr>
+    <tr>
+        <td>flash</td>
+        <td><!--#echo var="flash" --></td>
+    </tr>
+    <tr>
+        <td>lang</td>
+        <td><!--#echo var="lang" --></td>
+    </tr>
+    <tr>
+        <td>messages.get('hello', null)</td>
+        <td><!--#echo var="messages.get('hello', null)" --></td>
+    </tr>
+    <tr>
+        <td>out.size()</td>
+        <td><!--#echo var="out.size()" --></td>
+    </tr>
+    <tr>
+        <td>params</td>
+        <td><!--#echo var="params.allSimple()" --></td>
+    </tr>
+    <tr>
+        <td>play.mode.isDev()</td>
+        <td><!--#echo var="play.mode.isDev()" --></td>
+    </tr>
+    <tr>
+        <td>request</td>
+        <td><!--#echo var="request" --></td>
+    </tr>
+    <tr>
+        <td>session</td>
+        <td><!--#echo var="session" --></td>
+    </tr>
+</table>
 
 <div id="container">
   <header class="page">

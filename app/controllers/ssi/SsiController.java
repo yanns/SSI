@@ -6,11 +6,16 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.mvel2.MVEL;
+import org.mvel2.MVELInterpretedRuntime;
+import org.mvel2.integration.VariableResolverFactory;
+import org.mvel2.integration.impl.MapVariableResolverFactory;
 
 import play.Play;
 import play.classloading.enhancers.ControllersEnhancer.ByPass;
+import play.data.validation.Validation;
 import play.exceptions.UnexpectedException;
+import play.i18n.Lang;
+import play.i18n.Messages;
 import play.jobs.Job;
 import play.libs.F.Promise;
 import play.libs.MimeTypes;
@@ -87,6 +92,7 @@ public class SsiController extends Controller {
 
         final SsiResult ssiResult = new SsiResult(mimetype);
         Boolean currentCondition = null;
+        VariableResolverFactory variableResolverFactory = new MapVariableResolverFactory(getELVariables());
 
         for (int sectionIt = 0 ; sectionIt < document.sections.size() ; sectionIt++) {
             Section section = document.sections.get(sectionIt);
@@ -110,7 +116,7 @@ public class SsiController extends Controller {
 
                     // TODO is the charset relevant? (URL in UTF8?)
                     String ifExpression = new String(section.content);
-                    final Object result = MVEL.eval(ifExpression, getELVariables());
+                    final Object result = parseEL(ifExpression, variableResolverFactory);
                     if (!(result instanceof Boolean))
                         error("following if expression must evaluate to boolean: " + ifExpression);
 
@@ -118,7 +124,7 @@ public class SsiController extends Controller {
 
                 } else if (section.parseState == ParseState.ECHO && section.content != null) {
                     String echoExpression = new String(section.content);
-                    final Object result = MVEL.eval(echoExpression, getELVariables());
+                    final Object result = parseEL(echoExpression, variableResolverFactory);
                     if (result != null)
                         ssiResult.results.add(new StringResult(result.toString()));
                 }
@@ -139,9 +145,21 @@ public class SsiController extends Controller {
 
     protected static Map getELVariables() {
         Map vars = new HashMap();
-        vars.put("request", request);
+        // be consistent with http://www.playframework.org/documentation/1.2.3/templates#implicits
+        vars.put("errors", Validation.errors());
+        vars.put("flash", flash);
+        vars.put("lang", Lang.get());
+        vars.put("messages", Messages.class);
+        vars.put("out", response.out);
         vars.put("params", params);
+        vars.put("play", Play.class);
+        vars.put("request", request);
+        vars.put("session", session);
         return vars;
+    }
+
+    private static Object parseEL(String expression, VariableResolverFactory variableResolverFactory) {
+        return new MVELInterpretedRuntime(expression, null, variableResolverFactory).parse();
     }
 
     private static Request newRequest(Request originalRequest) {
