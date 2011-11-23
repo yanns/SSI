@@ -88,6 +88,21 @@ public class DocumentParserTest {
     }
 
     @Test
+    public void testEchoExpression() {
+        Document result = new DocumentParser().parse("hello world<!--#echo var=\"ze-expression\"-->end").finish();
+        assertEquals(3, result.sections.size());
+
+        assertEquals(ParseState.PLAIN_TEXT, result.sections.get(0).parseState);
+        assertEquals("hello world", result.sections.get(0).getContentAsString());
+
+        assertEquals(ParseState.ECHO, result.sections.get(1).parseState);
+        assertEquals("ze-expression", result.sections.get(1).getContentAsString());
+
+        assertEquals(ParseState.PLAIN_TEXT, result.sections.get(2).parseState);
+        assertEquals("end", result.sections.get(2).getContentAsString());
+    }
+
+    @Test
     public void testChainingExpression() {
         Document result = new DocumentParser().parse("hello world<!--#if expr=\"ze-expression\"--><!--#include virtual=\"my-url\"--><!--#endif-->end").finish();
         assertEquals(5, result.sections.size());

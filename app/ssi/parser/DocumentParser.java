@@ -13,6 +13,7 @@ public class DocumentParser {
         private char[] ifExpression = "if expr=\"".toCharArray();
         private char[] elseExpression = "else".toCharArray();
         private char[] endIfExpression = "endif".toCharArray();
+        private char[] echoExpression = "echo var=\"".toCharArray();
         private int plainBufferCapacity = 1024;
 
         public Builder setExpressionBegin(String expressionBegin) {
@@ -45,6 +46,11 @@ public class DocumentParser {
             return this;
         }
 
+        public Builder setEchoExpression(String echoExpression) {
+            this.echoExpression = echoExpression.toCharArray();
+            return this;
+        }
+
         public Builder setPlainBufferCapacity(int plainBufferCapacity) {
             this.plainBufferCapacity = plainBufferCapacity;
             return this;
@@ -64,6 +70,14 @@ public class DocumentParser {
             this.parseState = parseState;
             this.expression = expression;
         }
+
+        @Override
+        public String toString() {
+            return "PossibleExpression [parseState=" + parseState
+                    + ", expression=" + new String(expression)
+                    + ", possible=" + possible + "]";
+        }
+
     }
 
     private final char[] expressionBegin;
@@ -72,6 +86,7 @@ public class DocumentParser {
     private final char[] ifExpression;
     private final char[] elseExpression;
     private final char[] endIfExpression;
+    private final char[] echoExpression;
 
     // initial state
     private final Document document = new Document();
@@ -83,7 +98,7 @@ public class DocumentParser {
     private final ByteArrayBuilder internExpressionBuffer = new ByteArrayBuilder(100);
     private Stack<Section> stack = new Stack<Section>();
     private Section sectionToPushWhenExpressionEnd;
-    private final PossibleExpression[] expressionCandidates = new PossibleExpression[4];
+    private final PossibleExpression[] expressionCandidates = new PossibleExpression[5];
 
     //
     // constructors
@@ -91,7 +106,9 @@ public class DocumentParser {
 
     public DocumentParser() {
         this(new Builder());
+        initExpressionCandidates();
     }
+
     public DocumentParser(Builder builder) {
         this.expressionBegin = builder.expressionBegin;
         this.expressionEnd = builder.expressionEnd;
@@ -99,6 +116,7 @@ public class DocumentParser {
         this.ifExpression = builder.ifExpression;
         this.elseExpression = builder.elseExpression;
         this.endIfExpression = builder.endIfExpression;
+        this.echoExpression = builder.echoExpression;
         this.plainBuffer = new ByteArrayBuilder(builder.plainBufferCapacity);
         initExpressionCandidates();
     }
@@ -108,6 +126,7 @@ public class DocumentParser {
         expressionCandidates[1] = new PossibleExpression(IF,      ifExpression);
         expressionCandidates[2] = new PossibleExpression(ELSE,    elseExpression);
         expressionCandidates[3] = new PossibleExpression(ENDIF,   endIfExpression);
+        expressionCandidates[4] = new PossibleExpression(ECHO,    echoExpression);
     }
 
     //
@@ -213,6 +232,7 @@ public class DocumentParser {
 
                 case INCLUDE:
                 case IF:
+                case ECHO:
                     if (c == '"') {
                         // end of url or expr
                         sectionToPushWhenExpressionEnd = new Section( currentParseState, internExpressionBuffer.getByteBuffer() );

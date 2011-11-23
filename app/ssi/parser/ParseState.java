@@ -37,4 +37,8 @@ public enum ParseState {
      */
     ENDIF,
 
+    /**
+     * <!--#echo var="" -->
+     */
+    ECHO,
 }

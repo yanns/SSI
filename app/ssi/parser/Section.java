@@ -26,7 +26,7 @@ public class Section {
 
     @Override
     public String toString() {
-        return "Section [parseState=" + parseState + ", content=" + new String(content)
+        return "Section [parseState=" + parseState + (content != null? ", content=" + new String(content) : "")
                 + "]";
     }
 

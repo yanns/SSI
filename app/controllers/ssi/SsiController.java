@@ -115,6 +115,12 @@ public class SsiController extends Controller {
                         error("following if expression must evaluate to boolean: " + ifExpression);
 
                     currentCondition = (Boolean)result;
+
+                } else if (section.parseState == ParseState.ECHO && section.content != null) {
+                    String echoExpression = new String(section.content);
+                    final Object result = MVEL.eval(echoExpression, getELVariables());
+                    if (result != null)
+                        ssiResult.results.add(new StringResult(result.toString()));
                 }
             }
             if (section.parseState == ParseState.ELSE) {
