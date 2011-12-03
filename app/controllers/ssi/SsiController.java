@@ -3,27 +3,26 @@ package controllers.ssi;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.mvel2.MVELInterpretedRuntime;
-import org.mvel2.integration.VariableResolverFactory;
-import org.mvel2.integration.impl.MapVariableResolverFactory;
+import org.mvel2.MVEL;
 
 import play.Play;
 import play.classloading.enhancers.ControllersEnhancer.ByPass;
 import play.data.validation.Validation;
 import play.exceptions.UnexpectedException;
 import play.i18n.Lang;
-import play.i18n.Messages;
-import play.jobs.Job;
-import play.libs.F.Promise;
 import play.libs.MimeTypes;
 import play.mvc.ActionInvoker;
 import play.mvc.Controller;
 import play.mvc.Http.Request;
 import play.mvc.Http.Response;
 import play.mvc.results.Result;
+import play.utils.HTML;
 import play.vfs.VirtualFile;
 import ssi.parser.Document;
 import ssi.parser.FileDocumentParser;
@@ -31,10 +30,6 @@ import ssi.parser.ParseState;
 import ssi.parser.Section;
 
 public class SsiController extends Controller {
-
-    // test with async = true shows worse performance
-    // maybe we should activate it for large file
-    public static final boolean async = false;
 
     public static final Map<String, Document> documentCache = new HashMap<String, Document>();
 
@@ -60,21 +55,11 @@ public class SsiController extends Controller {
             document = documentCache.get(templateName);
 
         if (document == null) {
-            if (async) {
-                Promise<Document> docPromise = new Job<Document>() {
-                    @Override
-                    public Document doJobWithResult() throws Exception {
-                        return FileDocumentParser.parseFile(localFile);
-                    }
-                }.now();
-                document = await(docPromise);
-            } else {
-                try {
-                    document = FileDocumentParser.parseFile(localFile);
-                } catch (IOException e) {
-                    throw new UnexpectedException(e);
-                };
-            }
+            try {
+                document = FileDocumentParser.parseFile(localFile);
+            } catch (IOException e) {
+                throw new UnexpectedException(e);
+            };
             if (useCache)
                 documentCache.put(templateName, document);
         }
@@ -84,31 +69,68 @@ public class SsiController extends Controller {
     protected static SsiResult renderWithSsi(String mimetype, Document document) {
         Request innerRequest = newRequest(request);
         Response innerResponse = newResponse(response);
-        return renderWithSsi(mimetype, document, innerRequest, innerResponse);
+        return renderWithSsi(mimetype, document, response, innerRequest, innerResponse);
     }
 
-    protected static SsiResult renderWithSsi(String mimetype, Document document,
+    protected static SsiResult renderWithSsi(String mimetype, Document document, Response currentResponse,
             Request innerRequest, Response innerResponse) {
 
         final SsiResult ssiResult = new SsiResult(mimetype);
         Boolean currentCondition = null;
-        VariableResolverFactory variableResolverFactory = new MapVariableResolverFactory(getELVariables());
+        Deque<Boolean> ifStack = new ArrayDeque<Boolean>();
 
         for (int sectionIt = 0 ; sectionIt < document.sections.size() ; sectionIt++) {
             Section section = document.sections.get(sectionIt);
+            ParseState parseState = section.parseState;
+
             if (currentCondition == null || currentCondition.booleanValue()) {
-                if (section.parseState == ParseState.PLAIN_TEXT)
+
+                // sections that are not parsed depending on the current condition
+
+                if (parseState == ParseState.PLAIN_TEXT)
                     ssiResult.results.add(new ByteArrayResult(section.content));
 
-                else if (section.parseState == ParseState.INCLUDE) {
-                    // TODO flush content and call include asynchronous?
-                    // TODO is the charset relevant? (URL in UTF8?)
+                else if (parseState == ParseState.INCLUDE) {
+                    // the charset should not be relevant for URL
                     innerRequest.path = new String(section.content);
+                    innerRequest.args.clear();
+                    innerRequest.args.put("innerRequest", Boolean.TRUE);
                     innerResponse.out.reset();
+
+                    // check if there is parameter
+                    while (sectionIt != document.sections.size() - 1
+                            && document.sections.get(sectionIt + 1).parseState == ParseState.PARAM ) {
+                        section = document.sections.get(++sectionIt);
+                        if (section.content == null)
+                            error("expecting parameter name");
+
+                        String paramName = new String(section.content);
+                        if (sectionIt == document.sections.size() - 1)
+                            error("expecting value or end delimiter for parameter '" + paramName + "'");
+
+                        final byte[] paramValue;
+                        Section followingSection = document.sections.get(++sectionIt);
+                        if (followingSection.parseState == ParseState.PLAIN_TEXT) {
+                            if (sectionIt == document.sections.size() - 1)
+                                error("expecting end delimiter for parameter '" + paramName + "'");
+                            paramValue = followingSection.content;
+                            followingSection = document.sections.get(++sectionIt);
+                        } else {
+                            paramValue = null;
+                        }
+                        if (followingSection.parseState != ParseState.END_PARAM && followingSection.parseState != ParseState.PARAM) {
+                            error("expecting end delimiter for parameter '" + paramName + "'");
+                        } else {
+                            innerRequest.args.put(paramName, paramValue);
+                            if (followingSection.parseState == ParseState.PARAM) sectionIt--;
+                        }
+                    } // end of include parameters
+
+                    // TODO flush content and call include asynchronous?
                     ActionInvoker.invoke(innerRequest, innerResponse);
                     ssiResult.results.add(new ByteArrayResult(innerResponse.out.toByteArray()));
 
-                } else if (section.parseState == ParseState.IF) {
+                } else if (parseState == ParseState.IF) {
                     if (sectionIt == document.sections.size() - 1)
                         error("expected else or endif expression");
                     if (section.content == null || section.content.length == 0)
@@ -116,25 +138,32 @@ public class SsiController extends Controller {
 
                     // TODO is the charset relevant? (URL in UTF8?)
                     String ifExpression = new String(section.content);
-                    final Object result = parseEL(ifExpression, variableResolverFactory);
+                    final Object result = MVEL.eval(ifExpression, getELVariables(currentResponse));
                     if (!(result instanceof Boolean))
                         error("following if expression must evaluate to boolean: " + ifExpression);
 
+                    if (currentCondition != null) ifStack.push(currentCondition);
                     currentCondition = (Boolean)result;
 
-                } else if (section.parseState == ParseState.ECHO && section.content != null) {
+                } else if (parseState == ParseState.ECHO && section.content != null) {
                     String echoExpression = new String(section.content);
-                    final Object result = parseEL(echoExpression, variableResolverFactory);
+                    final Object result = MVEL.eval(echoExpression, getELVariables(currentResponse));
                     if (result != null)
-                        ssiResult.results.add(new StringResult(result.toString()));
+                        // escape HTML to avoid HTML/JS injection
+                        ssiResult.results.add(new StringResult(HTML.htmlEscape(result.toString())));
                 }
+
             }
-            if (section.parseState == ParseState.ELSE) {
+
+            // sections parsed every time (do not depend on condition)
+
+            if (parseState == ParseState.ELSE) {
                 if (currentCondition == null)
                     error("else without if");
                 currentCondition = Boolean.valueOf(!currentCondition.booleanValue());
-            } else if (section.parseState == ParseState.ENDIF) {
-                currentCondition = null;
+
+            } else if (parseState == ParseState.ENDIF) {
+                currentCondition = ifStack.size() != 0 ? ifStack.pop() : null;
             }
         }
 
@@ -143,26 +172,25 @@ public class SsiController extends Controller {
         return ssiResult;
     }
 
-    protected static Map getELVariables() {
+    protected static Map getELVariables(Response currentResponse) {
         Map vars = new HashMap();
         // be consistent with http://www.playframework.org/documentation/1.2.3/templates#implicits
-        vars.put("errors", Validation.errors());
+        vars.put("errors", Validation.current().errors());
         vars.put("flash", flash);
         vars.put("lang", Lang.get());
-        vars.put("messages", Messages.class);
-        vars.put("out", response.out);
+        vars.put("messages", MessagesWrapper.class);
+        vars.put("out", currentResponse.out);
         vars.put("params", params);
         vars.put("play", Play.class);
         vars.put("request", request);
         vars.put("session", session);
+
+        // additional mappings
+        vars.put("renderArgs", renderArgs);
         return vars;
     }
 
-    private static Object parseEL(String expression, VariableResolverFactory variableResolverFactory) {
-        return new MVELInterpretedRuntime(expression, null, variableResolverFactory).parse();
-    }
-
-    private static Request newRequest(Request originalRequest) {
+    protected static Request newRequest(Request originalRequest) {
         Request request = Request.createRequest(
                 originalRequest.remoteAddress,
                 originalRequest.method,
@@ -182,7 +210,7 @@ public class SsiController extends Controller {
         return request;
     }
 
-    private static Response newResponse(Response originalReponse) {
+    protected static Response newResponse(Response originalReponse) {
         Response response = new Response();
         response.out = new ByteArrayOutputStream();
         response.headers = originalReponse.headers;

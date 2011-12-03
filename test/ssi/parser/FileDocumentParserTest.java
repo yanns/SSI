@@ -3,6 +3,7 @@ package ssi.parser;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -12,12 +13,12 @@ import org.junit.Test;
 public class FileDocumentParserTest {
 
     private static final int NUMBER_OF_THREAD = 100;
-    private static final int NUMBER_OF_LOOP = 100;
+    private static final int NUMBER_OF_LOOP = 300;
 
     @Test
     public void testParseFile() throws IOException, URISyntaxException {
         URL homepage = this.getClass().getResource("homepage.html");
-        Document result = FileDocumentParser.parseFile(homepage.toURI());
+        Document result = FileDocumentParser.parseFile(new File(homepage.toURI()));
         assertNotNull(result.sections);
         assertEquals(3, result.sections.size());
 

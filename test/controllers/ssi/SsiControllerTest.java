@@ -1,6 +1,7 @@
 package controllers.ssi;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -12,6 +13,8 @@ import play.test.FunctionalTest;
 import ssi.parser.Document;
 import ssi.parser.ParseState;
 import ssi.parser.Section;
+
+import static ssi.parser.ParseState.*;
 
 public class SsiControllerTest extends FunctionalTest {
 
@@ -27,26 +30,28 @@ public class SsiControllerTest extends FunctionalTest {
         request.current.set(request);
         request.body = new ByteArrayInputStream(new byte[0]);
         response = newResponse();
+        response.out = new ByteArrayOutputStream();
     }
 
 
     @Test
     public void testRenderPlain() {
-        document.sections.add(new Section(ParseState.PLAIN_TEXT, ""));
-        SsiController.renderWithSsi("text/html", document, request, response);
+        document.add( PLAIN_TEXT, "" );
+        SsiController.renderWithSsi("text/html", document, response, request, response);
     }
 
     @Test( expected = play.mvc.results.Error.class )
     public void testRenderIfAtTheEnd() {
-        document.sections.add(new Section(ParseState.IF));
-        SsiController.renderWithSsi("text/html", document, request, response);
+        document.add( IF );
+        SsiController.renderWithSsi("text/html", document, response, request, response);
     }
 
     @Test( expected = play.mvc.results.Error.class )
     public void testRenderIfWithoutEndIf() {
-        document.sections.add(new Section(ParseState.IF));
-        document.sections.add(new Section(ParseState.INCLUDE, "url"));
-        SsiController.renderWithSsi("text/html", document, request, response);
+        document
+            .add( IF )
+            .add( INCLUDE, "url" );
+        SsiController.renderWithSsi("text/html", document, response, request, response);
     }
 
     @Test
@@ -60,15 +65,39 @@ public class SsiControllerTest extends FunctionalTest {
     }
 
     private void testSimpleIfBooleanInternal(boolean ifExpression) {
-        document.sections.add(new Section(ParseState.IF, ifExpression ? "true" : "false"));
-        document.sections.add(new Section(ParseState.PLAIN_TEXT, "then section"));
-        document.sections.add(new Section(ParseState.ELSE));
-        document.sections.add(new Section(ParseState.PLAIN_TEXT, "else section"));
-        document.sections.add(new Section(ParseState.ENDIF));
-        SsiResult ssiResult = SsiController.renderWithSsi("text/html", document, request, response);
+        document
+            .add( IF, ifExpression ? "true" : "false" )
+            .add(   PLAIN_TEXT, "then section" )
+            .add( ELSE )
+            .add(   PLAIN_TEXT, "else section" )
+            .add( ENDIF );
+
+        SsiResult ssiResult = SsiController.renderWithSsi("text/html", document, response, request, response);
         assertEquals(1, ssiResult.results.size());
         Result result = ssiResult.results.get(0);
         assertEquals(ifExpression ? "then section" : "else section", ((ByteArrayResult) result).toString());
     }
 
+
+    @Test
+    public void testNestedIf() {
+        document
+            .add( IF,  "true" )
+            .add(   PLAIN_TEXT, "then section level 1" )
+            .add(   IF,  "false" )
+            .add(       PLAIN_TEXT, "then section level 2" )
+            .add(   ELSE )
+            .add(       PLAIN_TEXT, "else section level 2" )
+            .add(   ENDIF )
+            .add( ELSE )
+            .add(   PLAIN_TEXT, "else section level 1" )
+            .add( ENDIF );
+
+        SsiResult ssiResult = SsiController.renderWithSsi("text/html", document, response, request, response);
+        assertEquals(2, ssiResult.results.size());
+        Result if1 = ssiResult.results.get(0);
+        assertEquals("then section level 1", ((ByteArrayResult) if1).toString());
+        Result if2 = ssiResult.results.get(1);
+        assertEquals("else section level 2", ((ByteArrayResult) if2).toString());
+    }
 }

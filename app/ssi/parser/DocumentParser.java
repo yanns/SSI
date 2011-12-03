@@ -2,14 +2,14 @@ package ssi.parser;
 
 import static ssi.parser.ParseState.*;
 
-import java.util.Stack;
-
 public class DocumentParser {
 
     public static class Builder {
         private char[] expressionBegin = "<!--#".toCharArray();
         private char[] expressionEnd = "-->".toCharArray();
         private char[] includeExpression = "include virtual=\"".toCharArray();
+        private char[] paramExpression = "param name=\"".toCharArray();
+        private char[] endParamExpression = "endparam".toCharArray();
         private char[] ifExpression = "if expr=\"".toCharArray();
         private char[] elseExpression = "else".toCharArray();
         private char[] endIfExpression = "endif".toCharArray();
@@ -28,6 +28,11 @@ public class DocumentParser {
 
         public Builder setIncludeExpression(String includeExpression) {
             this.includeExpression = includeExpression.toCharArray();;
+            return this;
+        }
+
+        public Builder setParamExpression(String paramExpression) {
+            this.paramExpression = paramExpression.toCharArray();;
             return this;
         }
 
@@ -63,11 +68,13 @@ public class DocumentParser {
 
     private static class PossibleExpression {
         final ParseState parseState;
+        final boolean hasContent;
         final char[] expression;
         boolean possible;
 
-        public PossibleExpression(ParseState parseState, char[] expression) {
+        public PossibleExpression(ParseState parseState, boolean hasContent, char[] expression) {
             this.parseState = parseState;
+            this.hasContent = hasContent;
             this.expression = expression;
         }
 
@@ -81,8 +88,11 @@ public class DocumentParser {
     }
 
     private final char[] expressionBegin;
+    private final char expressionBegin_0;
     private final char[] expressionEnd;
     private final char[] includeExpression;
+    private final char[] paramExpression;
+    private final char[] endParamExpression;
     private final char[] ifExpression;
     private final char[] elseExpression;
     private final char[] endIfExpression;
@@ -90,15 +100,13 @@ public class DocumentParser {
 
     // initial state
     private final Document document = new Document();
-    private int documentIndex = 0;
     private ParseState currentParseState = PLAIN_TEXT;
     private int expressionToParsedIndex = 0;
     private final ByteArrayBuilder plainBuffer;
     private final ByteArrayBuilder inCommentBuffer = new ByteArrayBuilder(100);
     private final ByteArrayBuilder internExpressionBuffer = new ByteArrayBuilder(100);
-    private Stack<Section> stack = new Stack<Section>();
     private Section sectionToPushWhenExpressionEnd;
-    private final PossibleExpression[] expressionCandidates = new PossibleExpression[5];
+    private final PossibleExpression[] expressionCandidates = new PossibleExpression[7];
 
     //
     // constructors
@@ -111,8 +119,11 @@ public class DocumentParser {
 
     public DocumentParser(Builder builder) {
         this.expressionBegin = builder.expressionBegin;
+        this.expressionBegin_0 = this.expressionBegin[0];
         this.expressionEnd = builder.expressionEnd;
         this.includeExpression = builder.includeExpression;
+        this.paramExpression = builder.paramExpression;
+        this.endParamExpression = builder.endParamExpression;
         this.ifExpression = builder.ifExpression;
         this.elseExpression = builder.elseExpression;
         this.endIfExpression = builder.endIfExpression;
@@ -122,11 +133,13 @@ public class DocumentParser {
     }
 
     private void initExpressionCandidates() {
-        expressionCandidates[0] = new PossibleExpression(INCLUDE, includeExpression);
-        expressionCandidates[1] = new PossibleExpression(IF,      ifExpression);
-        expressionCandidates[2] = new PossibleExpression(ELSE,    elseExpression);
-        expressionCandidates[3] = new PossibleExpression(ENDIF,   endIfExpression);
-        expressionCandidates[4] = new PossibleExpression(ECHO,    echoExpression);
+        expressionCandidates[0] = new PossibleExpression(INCLUDE,   true,  includeExpression);
+        expressionCandidates[1] = new PossibleExpression(PARAM,     true,  paramExpression);
+        expressionCandidates[2] = new PossibleExpression(END_PARAM, false, endParamExpression);
+        expressionCandidates[3] = new PossibleExpression(IF,        true,  ifExpression);
+        expressionCandidates[4] = new PossibleExpression(ELSE,      false, elseExpression);
+        expressionCandidates[5] = new PossibleExpression(ENDIF,     false, endIfExpression);
+        expressionCandidates[6] = new PossibleExpression(ECHO,      true,  echoExpression);
     }
 
     //
@@ -146,22 +159,11 @@ public class DocumentParser {
 
             final byte c = content[i];
             if (currentParseState == PLAIN_TEXT) {
-                if (c == expressionBegin[0]) {
-                    boolean isExpressionCandidate = true;
-                    if (contentLength > i + 1) {
-                        // avoid considering non-comment HTML tag as expression candidates
-                        byte c1 = content[i + 1];
-                        if (c1 != expressionBegin[1])
-                            isExpressionCandidate = false;
-                    }
-                    if (isExpressionCandidate) {
-                        inCommentBuffer.clear();
-                        inCommentBuffer.append(c);
-                        expressionToParsedIndex = 1;
-                        currentParseState = DYNAMIC_COMMENT;
-                    } else {
-                        plainBuffer.append(c);
-                    }
+                if (c == expressionBegin_0) {
+                    inCommentBuffer.clear();
+                    inCommentBuffer.append(c);
+                    expressionToParsedIndex = 1;
+                    currentParseState = DYNAMIC_COMMENT;
                 } else {
                     plainBuffer.append(c);
                 }
@@ -204,17 +206,17 @@ public class DocumentParser {
                                         // we found the expression
                                         expressionFound = true;
                                         if (plainBuffer.length != 0) {
-                                            stack.push(new Section( PLAIN_TEXT, plainBuffer.getByteBuffer() ) );
+                                            document.add( PLAIN_TEXT, plainBuffer.getByteBuffer() );
                                             plainBuffer.clear();
                                         }
                                         expressionToParsedIndex = 0;
                                         final ParseState parseState = possibleExpression.parseState;
-                                        if (parseState == ELSE || parseState == ENDIF) {
-                                            sectionToPushWhenExpressionEnd = new Section(parseState);
-                                            currentParseState = EXPRESSION_END;
-                                        } else {
+                                        if (possibleExpression.hasContent) {
                                             currentParseState = parseState;
                                             internExpressionBuffer.clear();
+                                        } else {
+                                            sectionToPushWhenExpressionEnd = new Section(parseState);
+                                            currentParseState = EXPRESSION_END;
                                         }
                                     }
                                 }
@@ -231,6 +233,7 @@ public class DocumentParser {
                     break;
 
                 case INCLUDE:
+                case PARAM:
                 case IF:
                 case ECHO:
                     if (c == '"') {
@@ -249,9 +252,10 @@ public class DocumentParser {
                     } else if (c == expressionEnd[expressionToParsedIndex]) {
                         expressionToParsedIndex += 1;
                         if (expressionToParsedIndex == expressionEnd.length) {
-                            stack.push(sectionToPushWhenExpressionEnd);
+                            document.add( sectionToPushWhenExpressionEnd );
                             currentParseState = PLAIN_TEXT;
                             plainBuffer.clear();
+                            inCommentBuffer.clear();
                         }
                     } else {
                         // invalid end comment
@@ -262,22 +266,16 @@ public class DocumentParser {
                 }
             }
         }
-        while (!stack.isEmpty()) {
-            document.sections.add(documentIndex, stack.pop());
-        }
-        documentIndex = document.sections.size();
         return this;
     }
 
+
     public Document finish() {
-        if (currentParseState == PLAIN_TEXT) {
-            stack.push(new Section(PLAIN_TEXT, plainBuffer.getByteBuffer()));
+        if (currentParseState == PLAIN_TEXT && plainBuffer.length != 0) {
+            document.add( PLAIN_TEXT, plainBuffer.getByteBuffer() );
         } else if (inCommentBuffer.length != 0) {
             plainBuffer.append(inCommentBuffer);
-            stack.push(new Section(PLAIN_TEXT, plainBuffer.getByteBuffer()));
-        }
-        while (!stack.isEmpty()) {
-            document.sections.add(documentIndex, stack.pop());
+            document.add( PLAIN_TEXT, plainBuffer.getByteBuffer() );
         }
         return document;
     }

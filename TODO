@@ -1,6 +1,3 @@
-[IF_EXPRE] implement IF expression
-
-
 [EXTERNAL_URL] include virtual can call external website
 Example:
 <!--include virtual="http://www.dns.com/uri" -->

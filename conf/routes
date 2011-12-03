@@ -4,9 +4,8 @@
 
 # Home page
 GET     /                                       Application.index
-GET     /hello/{name}                           Application.hello
-GET     /interviews                             Application.interviews
-GET    /public/homepage.html                    ssi.SsiController.renderWithCache
+GET     /echo                                   Echo.show
+GET     /interviews                             Interviews.show
 GET    /public/.*.html                          ssi.SsiController.render
 
 # Ignore favicon requests

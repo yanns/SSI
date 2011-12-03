@@ -15,17 +15,4 @@ public class Application extends Controller {
         render();
     }
 
-    public static void hello2() {
-        renderText("hello");
-    }
-
-    public static void hello(String name) {
-        renderText("hello " + name);
-    }
-
-    public static void interviews() {
-        String applicationNumber1 = "HLR--1002347";
-        render(applicationNumber1);
-    }
-
 }

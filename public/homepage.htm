@@ -17,7 +17,7 @@
        More info: h5bp.com/b/378 -->
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 
-  <title>HLR POS2</title>
+  <title>call agents</title>
 
   <!-- Mobile viewport optimized: j.mp/bplateviewport -->
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -30,30 +30,26 @@
 
   <!-- More ideas for your <head> here: h5bp.com/d/head-Tips -->
 
-  <!-- All JavaScript at the bottom, except for Modernizr / Respond.
-       Modernizr enables HTML5 elements & feature detects; Respond is a polyfill for min/max-width CSS3 Media Queries
-       For optimal performance, use a custom Modernizr build: www.modernizr.com/download/ -->
-  <script src="js/libs/modernizr-2.0.6.min.js"></script>
 </head>
 
 <body>
 
 <div id="container">
   <header class="page">
-    <img id="Logo" src="img/logo.png" />
+
     <div class="rightSide clearfix">
       <ul class="flags">
-        <li class="de"><a class="active" href="#"></a></li>
-        <li class="gb"><a href="#"></a></li>
+        <li class="gb"><a class="active" href="#"></a></li>
+        <li class="de"><a href="#"></a></li>
         <li class="es"><a href="#"></a></li>
       </ul>
 
       <ul id="MetaNav">
         <li>
-          <label>Benutzer:</label> Walker Catherine
+          <label>User:</label> Bob<!--#if expr="params.get('id') != null" --> (id=<!--#echo var="params.get('id')" -->)<!--#endif -->
         </li>
         <li class="logout">
-          <a class="logout-icon" href="Login.html">Abmelden</a>
+          <a class="logout-icon" href="#">Logout</a>
         </li>
       </ul>
     </div>
@@ -64,7 +60,7 @@
 
       <form id="ApplicationBasketFormular" class="container">
         <header>
-          Übersicht der zu bearbeitenden Interviews
+          Planned Interviews
         </header>
         <div id="ApplicationBasketContent" class="content">
 
@@ -72,62 +68,6 @@
 
         </div>
         <footer></footer>
-      </form>
-
-
-      <form id="ApplicationDetailsFormular" class="container hidden" action="Interview.html">
-        <header>
-          Details
-        </header>
-        <div id="ApplicationDetailsContent" class="content">
-
-          <h4>Gesprächspartner</h4>
-
-          <ul class="items">
-            <li>
-              <label>Anrede:</label>
-              <div id="gender">&nbsp;</div>
-            </li>
-            <li>
-              <label>Vorname:</label>
-              <div id="firstname">&nbsp;</div>
-            </li>
-            <li>
-              <label>Nachname:</label>
-              <div id="familyname">&nbsp;</div>
-            </li>
-            <li>
-              <label>Antragsnummer:</label>
-              <div id="applicationNumber">&nbsp;</div>
-            </li>
-            <li>
-              <label>Telefonnummer:</label>
-              <div id="fon">&nbsp;</div>
-            </li>
-          </ul>
-
-          <h4>Termine</h4>
-
-          <ul class="items">
-            <li>
-              <label>Antrag erfasst am:</label>
-              <div id="applicationCreatedDate">&nbsp;</div>
-            </li>
-            <li>
-              <label>Interviewtermin:</label>
-              <div id="interviewDate">&nbsp;</div>
-            </li>
-          </ul>
-
-          <div id="StartInterviewButtonWrapper">
-            <button id="start-interview-button" class="start-interview action button">
-              <div class="phone-icon">Interview<br/>starten</div>
-            </button>
-          </div>
-        </div>
-        <footer>
-
-        </footer>
       </form>
 
     </div>
@@ -142,13 +82,8 @@
 
 <!-- Grab Google CDN's jQuery, with a protocol relative URL; fall back to local if offline -->
 <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>-->
-<script src="js/libs/jquery-1.6.2.min.js"></script>
-<script src="js/libs/jquery.dataTables.min.js"></script>
-<script src="js/libs/ColReorderWithResize.js"></script>
 
 <!-- scripts concatenated and minified via ant build script-->
-<script defer src="js/plugins.js"></script>
-<script defer src="js/script.js"></script>
 <!-- end scripts-->
 
 <!-- Prompt IE 6 users to install Chrome Frame. Remove this if you want to support IE 6.

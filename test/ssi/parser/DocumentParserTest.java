@@ -9,13 +9,13 @@ public class DocumentParserTest {
 
     @Test
     public void testPlainSection() {
-        Document result = new DocumentParser().parse("hello world <!-- comment -->").finish();
+        Document result = new DocumentParser().parse("hello <a>world</a> <!-- comment -->").finish();
         assertNotNull(result.sections);
         assertEquals(1, result.sections.size());
 
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(0).parseState);
         String content = result.sections.get(0).getContentAsString();
-        assertEquals("hello world <!-- comment -->", content);
+        assertEquals("hello <a>world</a> <!-- comment -->", content);
     }
 
     @Test
@@ -57,6 +57,27 @@ public class DocumentParserTest {
 
         assertEquals(ParseState.PLAIN_TEXT, result.sections.get(2).parseState);
         assertEquals("end", result.sections.get(2).getContentAsString());
+    }
+
+    @Test
+    public void testIncludeWithParam() {
+        Document result = new DocumentParser()
+            .parse( "hello world<!--#include virtual=\"my-url\"-->" )
+            .parse( "<!--#param name=\"param1\"-->" )
+            .parse( "value of param1" )
+            .parse( "<!--#endparam-->" )
+            .finish();
+
+        assertNotNull(result.sections);
+        assertEquals(5, result.sections.size());
+
+        assertEquals(ParseState.INCLUDE, result.sections.get(1).parseState);
+        assertEquals("my-url", result.sections.get(1).getContentAsString());
+
+        assertEquals(ParseState.PARAM, result.sections.get(2).parseState);
+        assertEquals("param1", result.sections.get(2).getContentAsString());
+
+        assertEquals(ParseState.END_PARAM, result.sections.get(4).parseState);
     }
 
     @Test

@@ -18,9 +18,19 @@ public enum ParseState {
     EXPRESSION_END,
 
     /**
-     * <!--#include virtual="test.inc" -->
+     * <!--#include virtual="/intern-uri" -->
      */
     INCLUDE,
+
+    /**
+     * <!--#param name="" -->
+     */
+    PARAM,
+
+    /**
+     * <!--#endparam -->
+     */
+    END_PARAM,
 
     /**
      * <!--#if expr="" -->
