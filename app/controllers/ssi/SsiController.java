@@ -63,19 +63,23 @@ public class SsiController extends Controller {
             if (useCache)
                 documentCache.put(templateName, document);
         }
-        throw renderWithSsi(mimetype, document);
+        renderWithSsi(mimetype, document);
     }
 
-    protected static SsiResult renderWithSsi(String mimetype, Document document) {
+    protected static void renderWithSsi(String mimetype, Document document) {
         Request innerRequest = newRequest(request);
         Response innerResponse = newResponse(response);
-        return renderWithSsi(mimetype, document, response, innerRequest, innerResponse);
+        try {
+            renderWithSsi(mimetype, document, response, innerRequest, innerResponse);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    protected static SsiResult renderWithSsi(String mimetype, Document document, Response currentResponse,
-            Request innerRequest, Response innerResponse) {
+    protected static void renderWithSsi(String mimetype, Document document, Response currentResponse,
+            Request innerRequest, Response innerResponse) throws IOException {
 
-        final SsiResult ssiResult = new SsiResult(mimetype);
+        currentResponse.setContentTypeIfNotSet(mimetype);
         Boolean currentCondition = null;
         Deque<Boolean> ifStack = new ArrayDeque<Boolean>();
 
@@ -88,7 +92,7 @@ public class SsiController extends Controller {
                 // sections that are not parsed depending on the current condition
 
                 if (parseState == ParseState.PLAIN_TEXT)
-                    ssiResult.results.add(new ByteArrayResult(section.content));
+                    currentResponse.out.write(section.content);
 
                 else if (parseState == ParseState.INCLUDE) {
                     // the charset should not be relevant for URL
@@ -128,7 +132,7 @@ public class SsiController extends Controller {
 
                     // TODO flush content and call include asynchronous?
                     ActionInvoker.invoke(innerRequest, innerResponse);
-                    ssiResult.results.add(new ByteArrayResult(innerResponse.out.toByteArray()));
+                    currentResponse.out.write(innerResponse.out.toByteArray());
 
                 } else if (parseState == ParseState.IF) {
                     if (sectionIt == document.sections.size() - 1)
@@ -148,9 +152,11 @@ public class SsiController extends Controller {
                 } else if (parseState == ParseState.ECHO && section.content != null) {
                     String echoExpression = new String(section.content);
                     final Object result = MVEL.eval(echoExpression, getELVariables(currentResponse));
-                    if (result != null)
+                    if (result != null) {
                         // escape HTML to avoid HTML/JS injection
-                        ssiResult.results.add(new StringResult(HTML.htmlEscape(result.toString())));
+                        String resultAsString = new String(HTML.htmlEscape(result.toString()));
+                        currentResponse.out.write(resultAsString.getBytes(currentResponse.encoding));
+                    }
                 }
 
             }
@@ -169,7 +175,6 @@ public class SsiController extends Controller {
 
         if (currentCondition != null)
             error("missing endif expression");
-        return ssiResult;
     }
 
     protected static Map getELVariables(Response currentResponse) {

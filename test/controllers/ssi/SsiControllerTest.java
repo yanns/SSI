@@ -2,6 +2,7 @@ package controllers.ssi;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,36 +36,36 @@ public class SsiControllerTest extends FunctionalTest {
 
 
     @Test
-    public void testRenderPlain() {
+    public void testRenderPlain() throws IOException {
         document.add( PLAIN_TEXT, "" );
-        SsiController.renderWithSsi("text/html", document, response, request, response);
+        SsiController.renderWithSsi("text/html", document, response, request, null);
     }
 
     @Test( expected = play.mvc.results.Error.class )
-    public void testRenderIfAtTheEnd() {
+    public void testRenderIfAtTheEnd() throws IOException {
         document.add( IF );
-        SsiController.renderWithSsi("text/html", document, response, request, response);
+        SsiController.renderWithSsi("text/html", document, response, request, null);
     }
 
     @Test( expected = play.mvc.results.Error.class )
-    public void testRenderIfWithoutEndIf() {
+    public void testRenderIfWithoutEndIf() throws IOException {
         document
             .add( IF )
             .add( INCLUDE, "url" );
-        SsiController.renderWithSsi("text/html", document, response, request, response);
+        SsiController.renderWithSsi("text/html", document, response, request, null);
     }
 
     @Test
-    public void testSimpleIfTrue() {
+    public void testSimpleIfTrue() throws IOException {
         testSimpleIfBooleanInternal(false);
     }
 
     @Test
-    public void testSimpleIfFalse() {
+    public void testSimpleIfFalse() throws IOException {
         testSimpleIfBooleanInternal(true);
     }
 
-    private void testSimpleIfBooleanInternal(boolean ifExpression) {
+    private void testSimpleIfBooleanInternal(boolean ifExpression) throws IOException {
         document
             .add( IF, ifExpression ? "true" : "false" )
             .add(   PLAIN_TEXT, "then section" )
@@ -72,15 +73,13 @@ public class SsiControllerTest extends FunctionalTest {
             .add(   PLAIN_TEXT, "else section" )
             .add( ENDIF );
 
-        SsiResult ssiResult = SsiController.renderWithSsi("text/html", document, response, request, response);
-        assertEquals(1, ssiResult.results.size());
-        Result result = ssiResult.results.get(0);
-        assertEquals(ifExpression ? "then section" : "else section", ((ByteArrayResult) result).toString());
+        SsiController.renderWithSsi("text/html", document, response, request, null);
+        assertEquals(ifExpression ? "then section" : "else section", response.out.toString() );
     }
 
 
     @Test
-    public void testNestedIf() {
+    public void testNestedIf() throws IOException {
         document
             .add( IF,  "true" )
             .add(   PLAIN_TEXT, "then section level 1" )
@@ -93,11 +92,7 @@ public class SsiControllerTest extends FunctionalTest {
             .add(   PLAIN_TEXT, "else section level 1" )
             .add( ENDIF );
 
-        SsiResult ssiResult = SsiController.renderWithSsi("text/html", document, response, request, response);
-        assertEquals(2, ssiResult.results.size());
-        Result if1 = ssiResult.results.get(0);
-        assertEquals("then section level 1", ((ByteArrayResult) if1).toString());
-        Result if2 = ssiResult.results.get(1);
-        assertEquals("else section level 2", ((ByteArrayResult) if2).toString());
+        SsiController.renderWithSsi("text/html", document, response, request, null);
+        assertEquals("then section level 1else section level 2", response.out.toString() );
     }
 }
